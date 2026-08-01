@@ -31,8 +31,26 @@ npm run dev           # http://localhost:3000
 Scripts BD: `db:generate` (drizzle-kit), `db:migrate`, `db:seed`, `db:demo`,
 `db:reset` (borra datos; `--hard` borra el archivo).
 
+Calidad: `npm test` (vitest, 39 tests unitarios/integración), `npm run lint`,
+`npx tsc --noEmit`, `npm run build`.
+
 E2E: `npm run dev` en otra terminal y luego `node scripts/e2e.mjs`
 (prueba captura, cola offline y sincronización; requiere `npm i -D playwright`).
+
+## Git y CI
+
+```bash
+git init
+git add -A
+git commit -m "Fase 0: fundacion - tests, idempotencia offline, esquema auth, CI"
+git branch -M main
+# crea el repo en https://github.com/new (sin README/licencia/gitignore)
+git remote add origin https://github.com/TU-USUARIO/gestion-finanzas.git
+git push -u origin main
+```
+
+El workflow `.github/workflows/ci.yml` corre lint + typecheck + tests + build
+en cada push/PR (Node 24, `npm ci`). Requisitos: Node 20.9+ (`.nvmrc` = 24).
 
 ## Deploy (Vercel + Turso)
 
