@@ -16,6 +16,7 @@ const handler = async (req: NextRequest) => {
   for (const cookie of ctx.cookies) {
     response.headers.append("set-cookie", cookie);
   }
+  response.headers.set("x-request-id", ctx.requestId);
   return response;
 };
 

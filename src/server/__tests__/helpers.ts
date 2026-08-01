@@ -32,7 +32,7 @@ export function makeCtx(
   if (opts.origin) headers.set("origin", opts.origin);
   headers.set("host", opts.host ?? "localhost");
   const req = new NextRequest("http://localhost/api/trpc", { headers });
-  return { db, req, cookies: [] };
+  return { db, req, cookies: [], requestId: randomUUID() };
 }
 
 export async function createTestUser(

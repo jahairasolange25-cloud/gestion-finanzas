@@ -348,16 +348,16 @@ Diseño del service worker (public/sw.js): **network-first para navegación**, *
 - [ ] `error.tsx`/`global-error.tsx`/`not-found.tsx` + mensajes de error visibles en la UI
 - [x] `robots.txt` (contenido 100% detrás de auth)
 - [ ] Paginación del historial (o cursor) + totales por SQL (no por filas limitadas)
-- [ ] Registro estructurado mínimo (request id + errores)
+- [x] Registro estructurado mínimo (request id + errores)
 - [ ] Backup automatizado de Turso (script + cron mensual, o export CSV)
 - [ ] `.nvmrc` + `engines` en package.json (Node 20.9+, probado con 24)
 - [x] `poweredByHeader: false`, `generateEtags` por defecto ok
 
 **Deseables:**
 - [ ] Monitoreo de errores (Sentry), alertas de uptime, Vercel Analytics
-- [ ] Edición/borrado de transacciones en la UI (los procedimientos ya existen)
+- [x] Edición/borrado de transacciones en la UI (los procedimientos ya existen)
 - [ ] Debounce de búsqueda, `aria-live` para guardado, quitar `maximumScale:1`
-- [ ] Script de export/backup (JSON/CSV) en Ajustes
+- [x] Script de export/backup (CSV en Ajustes + `db:backup` para BD local)
 - [ ] `sw.js` con `updateViaCache: "none"` y versión de caché de API con expiración
 - [ ] Idempotency keys en `transactions.create`
 

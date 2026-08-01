@@ -124,13 +124,19 @@ sobre índices sin funciones SQL por fila. Montos en **céntimos** (INTEGER).
 - **Headers**: CSP estricto, `X-Content-Type-Options`, `X-Frame-Options`,
   `Referrer-Policy`, `Permissions-Policy`, `poweredByHeader: false`,
   `robots.txt` con disallow total.
-- Backups: exportar la BD (`data/finanzas.db`) o migrar a Turso.
+- **Logging**: registro estructurado JSON por request (`requestId`, `ip`,
+  ruta, latencia; errores siempre, >1000 ms como warning).
+- **Integridad**: editar/borrar transacciones desde el historial (con
+  confirmación) y export CSV de todo el historial en Ajustes (separador `;`,
+  BOM UTF-8, nombre `finanzas-YYYY-MM-DD.csv`).
+- Backups: `npm run db:backup` (copia con timestamp de la BD local en
+  `backups/`); para BD remota: `turso db dump <nombre-db>`.
 
 ## Roadmap
 
 - **MVP** (hecho): captura <1s, dashboard KPIs + gráficos, historial con
   filtros, PWA instalable, modo offline con cola, CRUD categorías.
 - **V1**: ingresos con fecha/categoría completos, comparación de períodos,
-  heatmap diario, export CSV/JSON.
+  heatmap diario, export JSON.
 - **V2**: presupuestos con alertas, gastos fijos recurrentes, metas de ahorro.
 - **Futuro**: insights automáticos, dark mode, autogeneración de gastos fijos.

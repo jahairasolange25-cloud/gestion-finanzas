@@ -151,6 +151,7 @@ export function SettingsScreen() {
       </div>
 
       <LogoutCard />
+      <ExportCard />
     </div>
   );
 
@@ -161,6 +162,39 @@ export function SettingsScreen() {
   function handleRemove(id: string) {
     remove.mutate({ id }, { onSuccess: invalidate });
   }
+}
+
+function ExportCard() {
+  const csv = trpc.export.csv.useQuery({}, { enabled: false });
+  const [done, setDone] = useState(false);
+
+  const download = async () => {
+    const res = await csv.refetch();
+    if (!res.data) return;
+    const blob = new Blob([res.data.csv], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = res.data.filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    setDone(true);
+    setTimeout(() => setDone(false), 4000);
+  };
+
+  return (
+    <Card>
+      <CardHeader title="Datos" subtitle="Backup manual de todas las transacciones" />
+      <div className="flex flex-col items-start gap-2 px-4 pb-4">
+        <Button variant="secondary" size="md" onClick={() => void download()} disabled={csv.isFetching}>
+          {csv.isFetching ? "Generando…" : "Exportar CSV"}
+        </Button>
+        {done ? <p className="text-xs text-emerald-600">Descarga lista. Guárdalo como copia de seguridad.</p> : null}
+      </div>
+    </Card>
+  );
 }
 
 function LogoutCard() {
