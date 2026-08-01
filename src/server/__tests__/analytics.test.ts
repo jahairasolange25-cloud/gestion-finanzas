@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { transactions } from "../db/schema";
 import { analyticsRouter } from "../routers/analytics";
-import { createTestDb, seedCategory } from "./helpers";
+import { createTestDb, seedCategory, createTestUser, mintSession, makeCtx } from "./helpers";
 import type { Db } from "../db";
 
 type Caller = ReturnType<typeof analyticsRouter.createCaller>;
@@ -16,7 +16,9 @@ describe("analyticsRouter", () => {
     db = await createTestDb();
     foodId = (await seedCategory(db, { name: "Alimentación" })).id;
     salaryId = (await seedCategory(db, { name: "Sueldo", type: "income" })).id;
-    caller = analyticsRouter.createCaller({ db });
+    const userId = await createTestUser(db);
+    const token = await mintSession(db, userId);
+    caller = analyticsRouter.createCaller(makeCtx(db, { cookie: token }));
 
     const ts = (d: string) => new Date(`${d}T12:00:00`).getTime();
     const tx = db.insert(transactions);

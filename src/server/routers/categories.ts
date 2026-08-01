@@ -2,7 +2,7 @@ import { z } from "zod";
 import { asc, count, eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
 import { categories, transactions, transactionType } from "../db/schema";
-import { publicProcedure, router } from "../trpc";
+import { protectedProcedure, router } from "../trpc";
 
 const base = {
   name: z.string().trim().min(1).max(40),
@@ -12,7 +12,7 @@ const base = {
 };
 
 export const categoriesRouter = router({
-  list: publicProcedure.query(({ ctx }) =>
+  list: protectedProcedure.query(({ ctx }) =>
     ctx.db
       .select()
       .from(categories)
@@ -20,7 +20,7 @@ export const categoriesRouter = router({
       .all(),
   ),
 
-  create: publicProcedure.input(z.object(base)).mutation(async ({ ctx, input }) => {
+  create: protectedProcedure.input(z.object(base)).mutation(async ({ ctx, input }) => {
     const now = Date.now();
     const row = {
       id: randomUUID(),
@@ -37,7 +37,7 @@ export const categoriesRouter = router({
     return row;
   }),
 
-  update: publicProcedure
+  update: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -57,7 +57,7 @@ export const categoriesRouter = router({
         .get();
     }),
 
-  setActive: publicProcedure
+  setActive: protectedProcedure
     .input(z.object({ id: z.string(), isActive: z.boolean() }))
     .mutation(async ({ ctx, input }) =>
       ctx.db
@@ -69,7 +69,7 @@ export const categoriesRouter = router({
     ),
 
   /** Elimina si no tiene transacciones; si las tiene, la desactiva. */
-  remove: publicProcedure
+  remove: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
       const res = await ctx.db

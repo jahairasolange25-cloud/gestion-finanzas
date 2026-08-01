@@ -114,9 +114,17 @@ sobre índices sin funciones SQL por fila. Montos en **céntimos** (INTEGER).
 
 ## Seguridad de datos
 
+- **Autenticación**: cuenta única creada en la primera visita (setup). Sesión
+  por cookie `httpOnly` + `SameSite=Lax` + `Secure` (prod), token con hash
+  SHA-256 en BD, 30 días con renovación deslizante, máx. 5 sesiones.
+  Contraseña con scrypt (salt por usuario, comparación en tiempo constante).
+- **CSRF**: verificación de Origin en toda mutación + SameSite=Lax.
+- **Rate limiting**: 10 intentos de login / 15 min, 120 mutaciones / min,
+  600 queries / min (en memoria).
+- **Headers**: CSP estricto, `X-Content-Type-Options`, `X-Frame-Options`,
+  `Referrer-Policy`, `Permissions-Policy`, `poweredByHeader: false`,
+  `robots.txt` con disallow total.
 - Backups: exportar la BD (`data/finanzas.db`) o migrar a Turso.
-- El usuario es único: no hay autenticación (a propósito). Si se despliega
-  en Vercel, la BD es privada por defecto (sin endpoints públicos).
 
 ## Roadmap
 

@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { PwaSync } from "@/components/pwa-sync";
 import { AppShell } from "@/components/layout/app-shell";
+import { AuthGate } from "@/components/auth-gate";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
@@ -43,7 +44,9 @@ export default function RootLayout({
       <body className="bg-slate-100/70 font-sans text-slate-900 antialiased">
         <Providers>
           <PwaSync />
-          <AppShell>{children}</AppShell>
+          <AuthGate>
+            <AppShell>{children}</AppShell>
+          </AuthGate>
         </Providers>
       </body>
     </html>

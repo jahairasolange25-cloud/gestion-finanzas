@@ -336,22 +336,22 @@ Diseño del service worker (public/sw.js): **network-first para navegación**, *
 
 **Bloqueantes (no lanzar sin esto):**
 - [ ] Inicializar repositorio git + subir a GitHub (privado) — hoy **no existe ningún control de versiones**
-- [ ] Implementar autenticación (o barrera de acceso: Cloudflare Access/Vercel Protection)
+- [x] Implementar autenticación (o barrera de acceso: Cloudflare Access/Vercel Protection)
 - [ ] Arreglar el bug de pérdida de datos de la cola offline
 - [ ] Arreglar el bug de zona horaria
 - [ ] Configurar Turso (URL + token) — el modo `file:` **no persiste en Vercel serverless** (cada instancia tiene su disco efímero)
-- [ ] Cabeceras de seguridad + CSP en `next.config.ts`
-- [ ] Rate limiting en la capa tRPC
+- [x] Cabeceras de seguridad + CSP en `next.config.ts`
+- [x] Rate limiting en la capa tRPC
 - [ ] Migraciones aplicadas como paso de deploy (`db:migrate` en el build) — hoy se ejecutan a mano
 
 **Importantes (primeras 2 semanas en producción):**
 - [ ] `error.tsx`/`global-error.tsx`/`not-found.tsx` + mensajes de error visibles en la UI
-- [ ] `robots.txt` con `noindex` (hasta que exista auth pública)
+- [x] `robots.txt` (contenido 100% detrás de auth)
 - [ ] Paginación del historial (o cursor) + totales por SQL (no por filas limitadas)
 - [ ] Registro estructurado mínimo (request id + errores)
 - [ ] Backup automatizado de Turso (script + cron mensual, o export CSV)
 - [ ] `.nvmrc` + `engines` en package.json (Node 20.9+, probado con 24)
-- [ ] `poweredByHeader: false`, `generateEtags` por defecto ok
+- [x] `poweredByHeader: false`, `generateEtags` por defecto ok
 
 **Deseables:**
 - [ ] Monitoreo de errores (Sentry), alertas de uptime, Vercel Analytics

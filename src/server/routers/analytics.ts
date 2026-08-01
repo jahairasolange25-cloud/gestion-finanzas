@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { and, asc, count, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { categories, transactions } from "../db/schema";
-import { publicProcedure, router } from "../trpc";
+import { protectedProcedure, router } from "../trpc";
 import { parseDate, toDateFields } from "../../lib/date-fields";
 
 const rangeSchema = z.object({
@@ -24,7 +24,7 @@ const monthLabel = (year: number, month: number) =>
   `${year}-${String(month).padStart(2, "0")}`;
 
 export const analyticsRouter = router({
-  summary: publicProcedure.input(rangeSchema).query(async ({ ctx, input }) => {
+  summary: protectedProcedure.input(rangeSchema).query(async ({ ctx, input }) => {
     const { from, to } = input;
     const where = and(gte(transactions.date, from), lte(transactions.date, to));
 

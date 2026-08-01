@@ -3,7 +3,7 @@ import { eq, count } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { transactions, categories } from "../db/schema";
 import { transactionsRouter } from "../routers/transactions";
-import { createTestDb, seedCategory } from "./helpers";
+import { createTestDb, seedCategory, createTestUser, mintSession, makeCtx } from "./helpers";
 import type { Db } from "../db";
 
 type Caller = ReturnType<typeof transactionsRouter.createCaller>;
@@ -17,7 +17,9 @@ describe("transactionsRouter", () => {
     db = await createTestDb();
     const cat = await seedCategory(db, { name: "Alimentación" });
     catId = cat.id;
-    caller = transactionsRouter.createCaller({ db });
+    const userId = await createTestUser(db);
+    const token = await mintSession(db, userId);
+    caller = transactionsRouter.createCaller(makeCtx(db, { cookie: token }));
   });
 
   describe("create", () => {

@@ -17,6 +17,19 @@ const page = await ctx.newPage();
 
 await page.goto(BASE, { waitUntil: "networkidle" });
 
+// ---- 0. Auth: setup (primera vez) o login ----
+await page.getByLabel("Usuario", { exact: true }).fill("e2e");
+await page.getByLabel("Contraseña", { exact: true }).fill("e2e-secreto-123");
+const setupBtn = page.getByRole("button", { name: "Crear acceso" });
+if (await setupBtn.count()) {
+  await page.getByLabel("Repetir contraseña", { exact: true }).fill("e2e-secreto-123");
+  await setupBtn.click();
+} else {
+  await page.getByRole("button", { name: "Ingresar" }).click();
+}
+await page.getByRole("button", { name: /Guardar/ }).waitFor({ timeout: 8000 });
+check("Auth: acceso a la app tras setup/login", true);
+
 // ---- 1. Captura optimista (online) ----
 const monto = page.getByRole("textbox", { name: "Monto en soles" });
 await monto.fill("7.20");

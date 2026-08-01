@@ -5,12 +5,18 @@ import { createContext } from "@/server/context";
 
 export const runtime = "nodejs";
 
-const handler = (req: NextRequest) =>
-  fetchRequestHandler({
+const handler = async (req: NextRequest) => {
+  const ctx = createContext(req);
+  const response = await fetchRequestHandler({
     endpoint: "/api/trpc",
     req,
     router: appRouter,
-    createContext,
+    createContext: () => ctx,
   });
+  for (const cookie of ctx.cookies) {
+    response.headers.append("set-cookie", cookie);
+  }
+  return response;
+};
 
 export { handler as GET, handler as POST };

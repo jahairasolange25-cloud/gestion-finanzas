@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -148,6 +149,8 @@ export function SettingsScreen() {
           <p className="mt-1 text-xs">Laptop, viaje, emergencias con progreso visual. Disponible en V2.</p>
         </Card>
       </div>
+
+      <LogoutCard />
     </div>
   );
 
@@ -158,6 +161,32 @@ export function SettingsScreen() {
   function handleRemove(id: string) {
     remove.mutate({ id }, { onSuccess: invalidate });
   }
+}
+
+function LogoutCard() {
+  const queryClient = useQueryClient();
+  const utils = trpc.useUtils();
+  const logout = trpc.auth.logout.useMutation();
+
+  const handleLogout = () => {
+    logout.mutate(undefined, {
+      onSuccess: () => {
+        queryClient.clear();
+        void utils.auth.status.invalidate();
+      },
+    });
+  };
+
+  return (
+    <Card>
+      <CardHeader title="Sesión" subtitle="Tu cuenta es única y privada" />
+      <div className="px-4 pb-4">
+        <Button variant="danger" size="md" onClick={handleLogout} disabled={logout.isPending}>
+          {logout.isPending ? "…" : "Cerrar sesión"}
+        </Button>
+      </div>
+    </Card>
+  );
 }
 
 function CategorySection({

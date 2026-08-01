@@ -9,7 +9,7 @@ import {
   transactionType,
 } from "../db/schema";
 import type { Db } from "../db";
-import { publicProcedure, router } from "../trpc";
+import { protectedProcedure, router } from "../trpc";
 import { parseDate, toDateFields, todayStr } from "../../lib/date-fields";
 
 /** Rango de epoch plausible: 2000-01-01 a 2100-01-01. */
@@ -85,7 +85,7 @@ async function assertCategoryMatches(
 }
 
 export const transactionsRouter = router({
-  create: publicProcedure
+  create: protectedProcedure
     .input(createSchema)
     .mutation(async ({ ctx, input }) => {
       await assertCategoryMatches(ctx.db, input.categoryId, input.type);
@@ -135,7 +135,7 @@ export const transactionsRouter = router({
       return row;
     }),
 
-  list: publicProcedure
+  list: protectedProcedure
     .input(
       z.object({
         from: dateSchema.optional(),
@@ -213,7 +213,7 @@ export const transactionsRouter = router({
       };
     }),
 
-  recent: publicProcedure
+  recent: protectedProcedure
     .input(z.object({ limit: z.number().int().min(1).max(50).default(15) }))
     .query(({ ctx, input }) =>
       ctx.db
@@ -224,7 +224,7 @@ export const transactionsRouter = router({
         .all(),
     ),
 
-  update: publicProcedure
+  update: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -276,7 +276,7 @@ export const transactionsRouter = router({
         .get();
     }),
 
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(z.object({ id: z.string().max(64) }))
     .mutation(async ({ ctx, input }) => {
       await ctx.db
@@ -286,7 +286,7 @@ export const transactionsRouter = router({
       return { ok: true };
     }),
 
-  monthRange: publicProcedure
+  monthRange: protectedProcedure
     .input(z.object({ year: z.number().int(), month: z.number().int().min(1).max(12) }))
     .query(({ input }) => {
       const from = `${input.year}-${String(input.month).padStart(2, "0")}-01`;
