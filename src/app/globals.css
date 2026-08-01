@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f1f5f9;
+  --foreground: #0f172a;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* Ocultar spinners del input numérico en algunos navegadores */
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-height: 2.75rem;
+}
