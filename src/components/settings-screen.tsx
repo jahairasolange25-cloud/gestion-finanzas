@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -198,15 +197,13 @@ function ExportCard() {
 }
 
 function LogoutCard() {
-  const queryClient = useQueryClient();
   const utils = trpc.useUtils();
   const logout = trpc.auth.logout.useMutation();
 
   const handleLogout = () => {
     logout.mutate(undefined, {
       onSuccess: () => {
-        queryClient.clear();
-        void utils.auth.status.invalidate();
+        void utils.auth.status.refetch();
       },
     });
   };
