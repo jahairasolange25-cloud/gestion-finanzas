@@ -31,14 +31,13 @@ npm run dev           # http://localhost:3000
 Scripts BD: `db:generate` (drizzle-kit), `db:migrate`, `db:seed`, `db:demo`,
 `db:reset` (borra datos; `--hard` borra el archivo).
 
-Calidad: `npm test` (vitest, 39 tests unitarios/integración), `npm run lint`,
+Calidad: `npm test` (vitest, 62 tests unitarios/integración), `npm run lint`,
 `npx tsc --noEmit`, `npm run build`.
 
 E2E: `npm run dev` en otra terminal y luego `node scripts/e2e.mjs`
 (prueba captura, cola offline y sincronización; requiere `npm i -D playwright`).
 
 ## Git y CI
-
 ```bash
 git init
 git add -A
@@ -54,15 +53,24 @@ en cada push/PR (Node 24, `npm ci`). Requisitos: Node 20.9+ (`.nvmrc` = 24).
 
 ## Deploy (Vercel + Turso)
 
+**Producción:** https://gestion-finanzas-five-kappa.vercel.app
+(BD: `libsql://finanzas-jahairasolange25-cloud.aws-us-east-1.turso.io`)
+
 ```bash
 # 1. Crea una BD en Turso y saca su URL + token
 # 2. En Vercel configura:
 DATABASE_URL=libsql://tu-db.turso.io
 TURSO_AUTH_TOKEN=eyJ...
+# 3. Aplica el esquema y las categorías por defecto (una vez, con variables):
+npm run db:migrate && npm run db:seed
+# 4. Despliega:
+vercel link && vercel --prod
 ```
 
 La app usa el mismo driver para local y remoto; sin variables usa
-`data/finanzas.db` local.
+`data/finanzas.db` local. Los deploys son manuales (`vercel --prod`);
+para auto-deploy al hacer push: Vercel → proyecto → Settings → Git →
+Connect Repository.
 
 ## Arquitectura
 

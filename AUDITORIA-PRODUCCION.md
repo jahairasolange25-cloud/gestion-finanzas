@@ -339,10 +339,10 @@ Diseño del service worker (public/sw.js): **network-first para navegación**, *
 - [x] Implementar autenticación (o barrera de acceso: Cloudflare Access/Vercel Protection)
 - [ ] Arreglar el bug de pérdida de datos de la cola offline
 - [ ] Arreglar el bug de zona horaria
-- [ ] Configurar Turso (URL + token) — el modo `file:` **no persiste en Vercel serverless** (cada instancia tiene su disco efímero)
+- [x] Configurar Turso (URL + token) — el modo `file:` **no persiste en Vercel serverless** (cada instancia tiene su disco efímero)
 - [x] Cabeceras de seguridad + CSP en `next.config.ts`
 - [x] Rate limiting en la capa tRPC
-- [ ] Migraciones aplicadas como paso de deploy (`db:migrate` en el build) — hoy se ejecutan a mano
+- [x] Migraciones aplicadas como paso de deploy (`db:migrate` en el build) — hoy se ejecutan a mano
 
 **Importantes (primeras 2 semanas en producción):**
 - [ ] `error.tsx`/`global-error.tsx`/`not-found.tsx` + mensajes de error visibles en la UI
@@ -350,8 +350,12 @@ Diseño del service worker (public/sw.js): **network-first para navegación**, *
 - [ ] Paginación del historial (o cursor) + totales por SQL (no por filas limitadas)
 - [x] Registro estructurado mínimo (request id + errores)
 - [ ] Backup automatizado de Turso (script + cron mensual, o export CSV)
-- [ ] `.nvmrc` + `engines` en package.json (Node 20.9+, probado con 24)
+- [x] `.nvmrc` + `engines` en package.json (Node 20.9+, probado con 24)
 - [x] `poweredByHeader: false`, `generateEtags` por defecto ok
+
+**Desplegado (Fase 3):** Turso (`libsql://finanzas-jahairasolange25-cloud.aws-us-east-1.turso.io`) migrado y sembrado (18 categorías); Vercel project `gestion-finanzas`, deploy manual con `vercel --prod` (GitHub auto-deploy aún no conectado); variables `DATABASE_URL` + `TURSO_AUTH_TOKEN` en Production; verificado en producción: headers, robots, 401 sin sesión, setup/login/logout, captura, historial, borrado, export CSV, error de login uniforme.
+
+**Pendientes post-deploy:** conectar repo a Vercel (Settings → Git → Connect), backup mensual de Turso, monitoreo (Sentry/uptime), páginas de error, paginación del historial, sw.js cache API, idempotency keys.
 
 **Deseables:**
 - [ ] Monitoreo de errores (Sentry), alertas de uptime, Vercel Analytics

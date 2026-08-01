@@ -31,3 +31,6 @@ next-env.d.ts
 # tooling artifacts
 /.playwright-mcp/
 /dev.log
+
+.vercel
+.env*
