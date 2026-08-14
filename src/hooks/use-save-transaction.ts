@@ -19,10 +19,10 @@ const recentInput = { limit: RECENT_LIMIT };
 type RecentData = TransactionRow[] | undefined;
 
 function makeRow(input: CreateTransactionInput, id: string): TransactionRow {
-  const d = input.ts
-    ? new Date(input.ts)
-    : input.date
-      ? parseDate(input.date)
+  const d = input.date
+    ? parseDate(input.date)
+    : input.ts
+      ? new Date(input.ts)
       : new Date();
   const f = toDateFields(d);
   const now = Date.now();

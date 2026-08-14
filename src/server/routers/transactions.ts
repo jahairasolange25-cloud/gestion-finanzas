@@ -99,10 +99,10 @@ export const transactionsRouter = router({
         if (existing) return existing;
       }
 
-      const d = input.ts
-        ? new Date(input.ts)
-        : input.date
-          ? parseDate(input.date)
+      const d = input.date
+        ? parseDate(input.date)
+        : input.ts
+          ? new Date(input.ts)
           : new Date();
       const f = toDateFields(d);
       const now = Date.now();
@@ -265,7 +265,7 @@ export const transactionsRouter = router({
       const changes: Record<string, unknown> = { ...rest, updatedAt: Date.now() };
       if (type) changes.type = type;
       if (date !== undefined || ts !== undefined) {
-        const d = ts ? new Date(ts) : parseDate(date!);
+        const d = date !== undefined ? parseDate(date) : new Date(ts!);
         Object.assign(changes, toDateFields(d));
       }
       return ctx.db

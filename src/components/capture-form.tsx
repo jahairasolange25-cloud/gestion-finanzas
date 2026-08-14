@@ -57,7 +57,7 @@ export function CaptureForm() {
       categoryId: effectiveCategory,
       concept: concept.trim() || null,
       note: note.trim() || null,
-      date: showAdvanced && date ? date : undefined,
+      date: showAdvanced && date ? date : todayStr(),
     });
     if (ok.ok) {
       if (effectiveCategory) setLastCategory(type, effectiveCategory);

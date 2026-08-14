@@ -39,16 +39,19 @@ describe("transactionsRouter", () => {
       expect(row.clientId).toBeNull();
     });
 
-    it("deriva las fechas del ts del cliente (no del servidor)", async () => {
-      // 23:30 en Perú (UTC-5) = 04:30 UTC del día siguiente.
-      const local = new Date(2026, 7, 14, 23, 30);
+    it("prefiere la fecha de calendario del cliente sobre el ts (servidor UTC)", async () => {
+      // 23:30 del 13 en Perú (UTC-5) = 04:30 UTC del 14: si el servidor
+      // derivara de `ts` en UTC, guardaría el día siguiente.
+      const local = new Date(2026, 7, 13, 23, 30);
       const row = await caller.create({
         type: "expense",
         amountCents: 500,
+        date: "2026-08-13",
         ts: local.getTime(),
       });
-      expect(row.date).toBe("2026-08-14");
-      expect(row.day).toBe(14);
+      expect(row.date).toBe("2026-08-13");
+      expect(row.day).toBe(13);
+      expect(row.month).toBe(8);
     });
 
     it("es idempotente por clientId", async () => {
