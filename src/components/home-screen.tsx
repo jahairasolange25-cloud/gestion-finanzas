@@ -4,6 +4,7 @@ import { CloudUpload } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { CaptureForm } from "./capture-form";
 import { TransactionList } from "./transaction-list";
+import { BudgetAlerts } from "./budget-alerts";
 import { Card } from "./ui/card";
 import { formatMoney } from "@/lib/money";
 import { monthStart, todayStr, toDateFields } from "@/lib/date-fields";
@@ -64,6 +65,8 @@ export function HomeScreen() {
           />
         </div>
       ) : null}
+
+      <BudgetAlerts />
 
       <section aria-label="Transacciones recientes">
         <div className="mb-2 flex items-baseline justify-between">

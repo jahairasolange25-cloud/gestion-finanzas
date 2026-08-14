@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
@@ -135,18 +136,24 @@ export function SettingsScreen() {
       <CategorySection title="Categorías de ingreso" cats={incomeCats} onToggle={handleToggle} onRemove={handleRemove} />
 
       <div className="grid gap-3 sm:grid-cols-3">
-        <Card className="p-4 text-center text-sm text-slate-400">
-          <p className="font-semibold text-slate-600">Presupuestos</p>
-          <p className="mt-1 text-xs">Alerta cuando te acerques o superes el límite por categoría. Disponible en V2.</p>
-        </Card>
-        <Card className="p-4 text-center text-sm text-slate-400">
-          <p className="font-semibold text-slate-600">Gastos fijos</p>
-          <p className="mt-1 text-xs">Internet, Netflix, gimnasio… con frecuencia y día de cobro. Disponible en V2.</p>
-        </Card>
-        <Card className="p-4 text-center text-sm text-slate-400">
-          <p className="font-semibold text-slate-600">Metas de ahorro</p>
-          <p className="mt-1 text-xs">Laptop, viaje, emergencias con progreso visual. Disponible en V2.</p>
-        </Card>
+        <Link href="/budgets" className="block">
+          <Card className="h-full p-4 text-center text-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50/40">
+            <p className="font-semibold text-slate-600">Presupuestos</p>
+            <p className="mt-1 text-xs text-slate-400">Límites mensuales con alertas al 80% y 100%</p>
+          </Card>
+        </Link>
+        <Link href="/fixed" className="block">
+          <Card className="h-full p-4 text-center text-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50/40">
+            <p className="font-semibold text-slate-600">Gastos fijos</p>
+            <p className="mt-1 text-xs text-slate-400">Internet, Netflix, gimnasio… con frecuencia y día de cobro</p>
+          </Card>
+        </Link>
+        <Link href="/goals" className="block">
+          <Card className="h-full p-4 text-center text-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50/40">
+            <p className="font-semibold text-slate-600">Metas de ahorro</p>
+            <p className="mt-1 text-xs text-slate-400">Laptop, viaje, emergencias con progreso visual</p>
+          </Card>
+        </Link>
       </div>
 
       <LogoutCard />

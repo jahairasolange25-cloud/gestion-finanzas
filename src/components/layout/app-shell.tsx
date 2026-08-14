@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CloudOff, Home, LayoutDashboard, Plus, Settings, Wallet } from "lucide-react";
+import { CloudOff, Home, LayoutDashboard, PiggyBank, Plus, Settings, Target, Wallet, Wallet2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useUiStore } from "@/store/ui-store";
 
@@ -10,6 +10,9 @@ const NAV = [
   { href: "/", label: "Inicio", icon: Home, exact: true },
   { href: "/history", label: "Historial", icon: Wallet },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/budgets", label: "Presupuestos", icon: Wallet2 },
+  { href: "/fixed", label: "Gastos fijos", icon: PiggyBank },
+  { href: "/goals", label: "Metas", icon: Target },
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];
 
@@ -100,9 +103,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
 
-          {NAV.slice(2).map(({ href, label, icon: Icon, exact }) => (
+          {NAV.slice(2, 3).map(({ href, label, icon: Icon, exact }) => (
             <NavItem key={href} href={href} label={label} icon={Icon} active={exact ? pathname === href : pathname.startsWith(href)} />
           ))}
+          <NavItem
+            href="/settings"
+            label="Ajustes"
+            icon={Settings}
+            active={pathname.startsWith("/settings")}
+          />
         </div>
       </nav>
     </div>
