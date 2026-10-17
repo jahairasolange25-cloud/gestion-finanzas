@@ -1,26 +1,21 @@
 import { z } from "zod";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { randomUUID } from "node:crypto";
 import { budgets, categories, transactions } from "../db/schema";
 import type { Db } from "../db";
 import { protectedProcedure, router } from "../trpc";
+import { prevCycleKey, todayCycleKey } from "../../lib/cycle";
+
+const cycleKeySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}$/, "Ciclo inválido");
 
 const amountSchema = z
   .number()
   .int()
   .positive("El monto debe ser mayor a 0")
   .max(10_000_000_000, "El monto no puede superar S/ 100,000,000");
-
-const upsertSchema = z.object({
-  categoryId: z.string().max(64),
-  amountCents: amountSchema,
-});
-
-const monthSchema = z.object({
-  year: z.number().int().min(2000).max(2100),
-  month: z.number().int().min(1).max(12),
-});
 
 async function assertExpenseCategory(db: Db, categoryId: string) {
   const cat = await db
@@ -34,7 +29,7 @@ async function assertExpenseCategory(db: Db, categoryId: string) {
   if (cat.type !== "expense") {
     throw new TRPCError({
       code: "BAD_REQUEST",
-      message: "El presupuesto solo aplica a categorías de gasto",
+      message: "La meta solo aplica a conceptos de gasto",
     });
   }
 }
@@ -49,83 +44,122 @@ export function budgetStatus(spentCents: number, amountCents: number): BudgetSta
   return "ok";
 }
 
-export const budgetsRouter = router({
-  /** Presupuestos con lo gastado en el período indicado (por defecto, mes actual). */
-  list: protectedProcedure
-    .input(monthSchema.partial())
-    .query(async ({ ctx, input }) => {
-      const now = new Date();
-      const year = input.year ?? now.getFullYear();
-      const month = input.month ?? now.getMonth() + 1;
+export function remainingCents(availableCents: number, spentCents: number): number {
+  return availableCents - spentCents;
+}
 
-      const rows = await ctx.db
+export const budgetsRouter = router({
+  /**
+   * Conceptos de gasto con su meta del ciclo, lo consumido y el sobrante.
+   * Incluye conceptos sin meta para poder asignarla.
+   */
+  list: protectedProcedure
+    .input(z.object({ cycleKey: cycleKeySchema.optional() }))
+    .query(async ({ ctx, input }) => {
+      const cycleKey = input.cycleKey ?? todayCycleKey();
+
+      const cats = await ctx.db
+        .select({
+          id: categories.id,
+          name: categories.name,
+          icon: categories.icon,
+          color: categories.color,
+        })
+        .from(categories)
+        .where(and(eq(categories.type, "expense"), eq(categories.isActive, true)))
+        .orderBy(categories.sortOrder, categories.name)
+        .all();
+
+      const metas = await ctx.db
         .select({
           id: budgets.id,
           categoryId: budgets.categoryId,
           amountCents: budgets.amountCents,
-          period: budgets.period,
-          isActive: budgets.isActive,
-          createdAt: budgets.createdAt,
-          categoryName: categories.name,
-          categoryIcon: categories.icon,
-          categoryColor: categories.color,
+          carryCents: budgets.carryCents,
         })
         .from(budgets)
-        .leftJoin(categories, eq(budgets.categoryId, categories.id))
-        .orderBy(categories.name)
+        .where(and(eq(budgets.cycleKey, cycleKey), eq(budgets.isActive, true)))
         .all();
+      const metaByCat = new Map(metas.map((m) => [m.categoryId, m]));
 
-      const catIds = rows
-        .map((r) => r.categoryId)
-        .filter((id): id is string => id !== null);
+      const spentRows = await ctx.db
+        .select({
+          categoryId: transactions.categoryId,
+          total: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)`,
+        })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.type, "expense"),
+            eq(transactions.cycleKey, cycleKey),
+            isNull(transactions.fixedExpenseId),
+          ),
+        )
+        .groupBy(transactions.categoryId)
+        .all();
       const spentByCat = new Map<string, number>();
-      if (catIds.length > 0) {
-        const spentRows = await ctx.db
-          .select({
-            categoryId: transactions.categoryId,
-            total: sql<number>`COALESCE(SUM(${transactions.amountCents}), 0)`,
-          })
-          .from(transactions)
-          .where(
-            and(
-              eq(transactions.type, "expense"),
-              eq(transactions.year, year),
-              eq(transactions.month, month),
-              inArray(transactions.categoryId, catIds),
-            ),
-          )
-          .groupBy(transactions.categoryId)
-          .all();
-        for (const r of spentRows) {
-          if (r.categoryId) spentByCat.set(r.categoryId, r.total ?? 0);
-        }
+      for (const r of spentRows) {
+        if (r.categoryId) spentByCat.set(r.categoryId, r.total ?? 0);
       }
 
-      return {
-        year,
-        month,
-        rows: rows.map((r) => {
-          const spentCents = r.categoryId !== null ? (spentByCat.get(r.categoryId) ?? 0) : 0;
-          return {
-            ...r,
-            spentCents,
-            pct: r.amountCents > 0 ? Math.min(100, Math.round((spentCents / r.amountCents) * 100)) : 0,
-            status: budgetStatus(spentCents, r.amountCents),
-          };
+      const rows = cats.map((c) => {
+        const meta = metaByCat.get(c.id);
+        const amountCents = meta?.amountCents ?? 0;
+        const carryCents = meta?.carryCents ?? 0;
+        const availableCents = amountCents + carryCents;
+        const spentCents = spentByCat.get(c.id) ?? 0;
+        return {
+          categoryId: c.id,
+          name: c.name,
+          icon: c.icon,
+          color: c.color,
+          budgetId: meta?.id ?? null,
+          amountCents,
+          carryCents,
+          availableCents,
+          spentCents,
+          remainingCents: availableCents - spentCents,
+          pct:
+            availableCents > 0
+              ? Math.min(100, Math.round((spentCents / availableCents) * 100))
+              : 0,
+          status: budgetStatus(spentCents, availableCents),
+        };
+      });
+
+      const totals = rows.reduce(
+        (acc, r) => ({
+          metaCents: acc.metaCents + r.amountCents,
+          carryCents: acc.carryCents + r.carryCents,
+          spentCents: acc.spentCents + r.spentCents,
         }),
-      };
+        { metaCents: 0, carryCents: 0, spentCents: 0 },
+      );
+
+      return { cycleKey, rows, totals };
     }),
 
-  /** Un presupuesto por categoría: crea si no existe, actualiza el monto si ya hay. */
+  /** Asigna o actualiza la meta de un concepto para un ciclo. */
   upsert: protectedProcedure
-    .input(upsertSchema)
+    .input(
+      z.object({
+        categoryId: z.string().max(64),
+        cycleKey: cycleKeySchema,
+        amountCents: amountSchema,
+      }),
+    )
     .mutation(async ({ ctx, input }) => {
       await assertExpenseCategory(ctx.db, input.categoryId);
 
       const existing = await ctx.db
         .select()
         .from(budgets)
-        .where(eq(budgets.categoryId, input.categoryId))
+        .where(
+          and(
+            eq(budgets.categoryId, input.categoryId),
+            eq(budgets.cycleKey, input.cycleKey),
+          ),
+        )
         .get();
 
       if (existing) {
@@ -140,13 +174,54 @@ export const budgetsRouter = router({
       const row = {
         id: randomUUID(),
         categoryId: input.categoryId,
+        cycleKey: input.cycleKey,
         amountCents: input.amountCents,
+        carryCents: 0,
         period: "monthly" as const,
         isActive: true,
         createdAt: Date.now(),
       };
       await ctx.db.insert(budgets).values(row).run();
       return row;
+    }),
+
+  /** Copia las metas del ciclo anterior al actual (solo conceptos sin meta todavía). */
+  copyPrevious: protectedProcedure
+    .input(z.object({ cycleKey: cycleKeySchema }))
+    .mutation(async ({ ctx, input }) => {
+      const prev = prevCycleKey(input.cycleKey);
+      const prevRows = await ctx.db
+        .select()
+        .from(budgets)
+        .where(and(eq(budgets.cycleKey, prev), eq(budgets.isActive, true)))
+        .all();
+
+      const currentRows = await ctx.db
+        .select({ categoryId: budgets.categoryId })
+        .from(budgets)
+        .where(eq(budgets.cycleKey, input.cycleKey))
+        .all();
+      const taken = new Set(currentRows.map((r) => r.categoryId));
+
+      let created = 0;
+      for (const r of prevRows) {
+        if (taken.has(r.categoryId)) continue;
+        await ctx.db
+          .insert(budgets)
+          .values({
+            id: randomUUID(),
+            categoryId: r.categoryId,
+            cycleKey: input.cycleKey,
+            amountCents: r.amountCents,
+            carryCents: 0,
+            period: "monthly" as const,
+            isActive: true,
+            createdAt: Date.now(),
+          })
+          .run();
+        created++;
+      }
+      return { created };
     }),
 
   setActive: protectedProcedure
@@ -158,7 +233,7 @@ export const budgetsRouter = router({
         .where(eq(budgets.id, input.id))
         .returning()
         .get();
-      if (!res) throw new TRPCError({ code: "NOT_FOUND", message: "Presupuesto no encontrado" });
+      if (!res) throw new TRPCError({ code: "NOT_FOUND", message: "Meta no encontrada" });
       return res;
     }),
 
@@ -170,7 +245,7 @@ export const budgetsRouter = router({
         .where(eq(budgets.id, input.id))
         .run();
       if (res.rowsAffected === 0) {
-        throw new TRPCError({ code: "NOT_FOUND", message: "Presupuesto no encontrado" });
+        throw new TRPCError({ code: "NOT_FOUND", message: "Meta no encontrada" });
       }
       return { ok: true };
     }),

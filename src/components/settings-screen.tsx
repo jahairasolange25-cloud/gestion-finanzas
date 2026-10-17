@@ -135,17 +135,29 @@ export function SettingsScreen() {
       <CategorySection title="Categorías de gasto" cats={expenseCats} onToggle={handleToggle} onRemove={handleRemove} />
       <CategorySection title="Categorías de ingreso" cats={incomeCats} onToggle={handleToggle} onRemove={handleRemove} />
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Link href="/budgets" className="block">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Link href="/concepts" className="block">
           <Card className="h-full p-4 text-center text-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50/40">
-            <p className="font-semibold text-slate-600">Presupuestos</p>
-            <p className="mt-1 text-xs text-slate-400">Límites mensuales con alertas al 80% y 100%</p>
+            <p className="font-semibold text-slate-600">Gastos personales</p>
+            <p className="mt-1 text-xs text-slate-400">Define cuánto destinar a cada concepto y reparte el sobrante</p>
           </Card>
         </Link>
         <Link href="/fixed" className="block">
           <Card className="h-full p-4 text-center text-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50/40">
             <p className="font-semibold text-slate-600">Gastos fijos</p>
             <p className="mt-1 text-xs text-slate-400">Internet, Netflix, gimnasio… con frecuencia y día de cobro</p>
+          </Card>
+        </Link>
+        <Link href="/savings" className="block">
+          <Card className="h-full p-4 text-center text-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50/40">
+            <p className="font-semibold text-slate-600">Ahorros</p>
+            <p className="mt-1 text-xs text-slate-400">Bolsillos con reparto por porcentaje y registro de aportes</p>
+          </Card>
+        </Link>
+        <Link href="/close" className="block">
+          <Card className="h-full p-4 text-center text-sm transition-colors hover:border-indigo-300 hover:bg-indigo-50/40">
+            <p className="font-semibold text-slate-600">Cierre de ciclo</p>
+            <p className="mt-1 text-xs text-slate-400">Decide qué hacer con el sobrante de cada concepto</p>
           </Card>
         </Link>
         <Link href="/goals" className="block">

@@ -5,6 +5,7 @@ import { transactions, fixedExpenses } from "../db/schema";
 import { fixedExpensesRouter, chargeDatesForMonth } from "../routers/fixed-expenses";
 import { createTestDb, seedCategory, createTestUser, mintSession, makeCtx } from "./helpers";
 import type { Db } from "../db";
+import { parseDate, toDateFields } from "../../lib/date-fields";
 
 type Caller = ReturnType<typeof fixedExpensesRouter.createCaller>;
 
@@ -165,6 +166,93 @@ describe("fixedExpensesRouter", () => {
       await caller.remove({ id: fe.id });
       const rows = await db.select().from(fixedExpenses).all();
       expect(rows).toHaveLength(0);
+    });
+  });
+
+  describe("list (esperado/pagado por ciclo)", () => {
+    it("solo cuenta cobros dentro del rango 25→24 del ciclo", async () => {
+      const fe = await caller.create({ name: "Netflix", amountCents: 3490, categoryId: catId, chargeDay: 15 });
+      const res = await caller.list({ cycleKey: "2026-09" });
+      const item = res.items.find((i) => i.id === fe.id)!;
+      expect(item.expectedCount).toBe(1);
+      expect(item.expectedCents).toBe(3490);
+      expect(item.paidCents).toBe(0);
+      expect(res.totals.expectedCents).toBe(3490);
+      expect(res.totals.pendingCents).toBe(3490);
+      expect(res.start).toBe("2026-09-25");
+      expect(res.end).toBe("2026-10-24");
+    });
+
+    it("un activo no esperado en el ciclo no suma al total", async () => {
+      await caller.create({ name: "Seguro", amountCents: 30_000, frequency: "yearly", chargeDay: 10 });
+      const res = await caller.list({ cycleKey: "2026-11" });
+      expect(res.totals.expectedCents).toBe(0);
+    });
+  });
+
+  describe("markPaid / unmarkPaid", () => {
+    it("crea la transacción vinculada, deriva el ciclo y es idempotente", async () => {
+      const fe = await caller.create({ name: "Luz", amountCents: 8000, categoryId: catId, chargeDay: 20 });
+
+      const tx = await caller.markPaid({ id: fe.id, date: "2026-10-20" });
+      expect(tx.fixedExpenseId).toBe(fe.id);
+      expect(tx.cycleKey).toBe("2026-09");
+      expect(tx.type).toBe("expense");
+      expect(tx.categoryId).toBe(catId);
+      expect(tx.concept).toBe("Luz");
+
+      const again = await caller.markPaid({ id: fe.id, date: "2026-10-20" });
+      expect(again.id).toBe(tx.id);
+      expect(await db.select().from(transactions).all()).toHaveLength(1);
+
+      const res = await caller.list({ cycleKey: "2026-09" });
+      const item = res.items.find((i) => i.id === fe.id)!;
+      expect(item.paidCents).toBe(8000);
+      expect(item.paidCount).toBe(1);
+      expect(res.totals.pendingCents).toBe(0);
+    });
+
+    it("fechas distintas del mismo gasto cuentan como pagos separados", async () => {
+      const fe = await caller.create({ name: "Mercado", amountCents: 5000, frequency: "weekly", chargeDay: 5 });
+      await caller.markPaid({ id: fe.id, date: "2026-10-02" });
+      await caller.markPaid({ id: fe.id, date: "2026-10-09" });
+      const res = await caller.list({ cycleKey: "2026-09" });
+      const item = res.items.find((i) => i.id === fe.id)!;
+      expect(item.paidCount).toBe(2);
+      expect(item.paidCents).toBe(10_000);
+    });
+
+    it("markPaid rechaza gastos fijos inexistentes", async () => {
+      await expect(caller.markPaid({ id: "nope" })).rejects.toThrow(TRPCError);
+    });
+
+    it("unmarkPaid elimina el pago y list vuelve a pendiente", async () => {
+      const fe = await caller.create({ name: "Luz", amountCents: 8000, chargeDay: 20 });
+      const tx = await caller.markPaid({ id: fe.id, date: "2026-10-20" });
+      const res = await caller.unmarkPaid({ transactionId: tx.id });
+      expect(res.ok).toBe(true);
+      expect(await db.select().from(transactions).all()).toHaveLength(0);
+      const list = await caller.list({ cycleKey: "2026-09" });
+      expect(list.items.find((i) => i.id === fe.id)!.paidCents).toBe(0);
+    });
+
+    it("unmarkPaid rechaza transacciones que no son pagos de gasto fijo", async () => {
+      const now = Date.now();
+      const f = toDateFields(parseDate("2026-10-01"));
+      await db
+        .insert(transactions)
+        .values({
+          id: "tx-normal",
+          type: "expense",
+          amountCents: 1000,
+          cycleKey: "2026-09",
+          ...f,
+          createdAt: now,
+          updatedAt: now,
+        })
+        .run();
+      await expect(caller.unmarkPaid({ transactionId: "tx-normal" })).rejects.toThrow(TRPCError);
+      await expect(caller.unmarkPaid({ transactionId: "nope" })).rejects.toThrow(TRPCError);
     });
   });
 });

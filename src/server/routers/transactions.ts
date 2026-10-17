@@ -11,6 +11,7 @@ import {
 import type { Db } from "../db";
 import { protectedProcedure, router } from "../trpc";
 import { parseDate, toDateFields, todayStr } from "../../lib/date-fields";
+import { cycleKeyOf } from "../../lib/cycle";
 
 /** Rango de epoch plausible: 2000-01-01 a 2100-01-01. */
 const tsSchema = z
@@ -114,6 +115,7 @@ export const transactionsRouter = router({
         concept: input.concept ?? null,
         note: input.note ?? null,
         clientId: input.clientId ?? null,
+        cycleKey: cycleKeyOf(f.date),
         ...f,
         createdAt: now,
         updatedAt: now,
@@ -140,6 +142,7 @@ export const transactionsRouter = router({
       z.object({
         from: dateSchema.optional(),
         to: dateSchema.optional(),
+        cycleKey: z.string().regex(/^\d{4}-\d{2}$/).optional(),
         type: z.enum(transactionType).optional(),
         categoryId: z.string().max(64).optional(),
         search: z.string().trim().max(120).optional(),
@@ -152,6 +155,7 @@ export const transactionsRouter = router({
       const conds = [];
       if (input.from) conds.push(gte(transactions.date, input.from));
       if (input.to) conds.push(lte(transactions.date, input.to));
+      if (input.cycleKey) conds.push(eq(transactions.cycleKey, input.cycleKey));
       if (input.type) conds.push(eq(transactions.type, input.type));
       if (input.categoryId)
         conds.push(eq(transactions.categoryId, input.categoryId));
@@ -266,7 +270,8 @@ export const transactionsRouter = router({
       if (type) changes.type = type;
       if (date !== undefined || ts !== undefined) {
         const d = date !== undefined ? parseDate(date) : new Date(ts!);
-        Object.assign(changes, toDateFields(d));
+        const f = toDateFields(d);
+        Object.assign(changes, f, { cycleKey: cycleKeyOf(f.date) });
       }
       return ctx.db
         .update(transactions)

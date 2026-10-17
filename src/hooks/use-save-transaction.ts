@@ -8,6 +8,7 @@ import {
   removePending,
 } from "@/lib/offline-queue";
 import { parseDate, toDateFields } from "@/lib/date-fields";
+import { cycleKeyOf } from "@/lib/cycle";
 import type { CreateTransactionInput } from "@/lib/types";
 import type { Transaction } from "@/server/db/schema";
 
@@ -34,6 +35,8 @@ function makeRow(input: CreateTransactionInput, id: string): TransactionRow {
     categoryId: input.categoryId ?? null,
     concept: input.concept ?? null,
     note: input.note ?? null,
+    cycleKey: cycleKeyOf(f.date),
+    fixedExpenseId: null,
     ...f,
     createdAt: now,
     updatedAt: now,

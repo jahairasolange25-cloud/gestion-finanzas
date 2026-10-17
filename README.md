@@ -31,7 +31,7 @@ npm run dev           # http://localhost:3000
 Scripts BD: `db:generate` (drizzle-kit), `db:migrate`, `db:seed`, `db:demo`,
 `db:reset` (borra datos; `--hard` borra el archivo).
 
-Calidad: `npm test` (vitest, 62 tests unitarios/integración), `npm run lint`,
+Calidad: `npm test` (vitest, 146 tests unitarios/integración), `npm run lint`,
 `npx tsc --noEmit`, `npm run build`.
 
 E2E: `npm run dev` en otra terminal y luego `node scripts/e2e.mjs`
@@ -76,7 +76,8 @@ Connect Repository.
 
 ```
 src/
-├── app/                    # Rutas: / (captura), /history, /dashboard, /settings
+├── app/                    # Rutas: / (inicio + captura), /history, /dashboard,
+│   │                       # /fixed, /concepts, /savings, /close, /settings
 │   ├── api/trpc/[trpc]/    # Route handler de tRPC (nodejs runtime)
 │   ├── manifest.ts         # Web App Manifest (PWA)
 │   ├── providers.tsx       # QueryClient + tRPC provider
@@ -84,30 +85,64 @@ src/
 ├── server/
 │   ├── db/                 # Drizzle schema + cliente + categorías seed
 │   ├── routers/            # transactions, categories, analytics (tRPC)
+│   │                       # fixed-expenses, budgets, savings, cycles
 │   └── context.ts, trpc.ts # init tRPC
 ├── components/
+│   ├── home-screen.tsx     # Ciclo actual + 3 secciones + captura + recientes
 │   ├── capture-form.tsx    # Formulario <1s: monto → categoría → guardar
+│   ├── fixed-expenses-screen.tsx # Cobros del ciclo + marcar pagado
+│   ├── concepts-screen.tsx # Metas por concepto (gastado de meta)
+│   ├── savings-screen.tsx  # Sub-bolsillos: aportar, retirar, historial
+│   ├── close-cycle-screen.tsx# Cierre de ciclo con decisiones de sobrantes
 │   ├── dashboard-screen.tsx# KPIs + 5 gráficos ECharts
 │   ├── history-screen.tsx  # Filtros: mes, tipo, categoría, búsqueda
-│   ├── settings-screen.tsx # CRUD de categorías
+│   ├── settings-screen.tsx # CRUD de categorías + accesos
 │   ├── transaction-list.tsx# Lista agrupada por día
 │   ├── charts.tsx          # Wrapper ECharts (lazy, tree-shaken)
 │   ├── pwa-sync.tsx        # SW + detección offline + flush de cola
 │   └── layout/             # Sidebar desktop + bottom nav móvil
 ├── hooks/use-save-transaction.ts  # Optimistic UI + cola offline
-├── lib/                    # money, date-fields, trpc, offline-queue, types
+├── lib/                    # money, date-fields, cycle (25→24 + reparto %),
+│                           # trpc, offline-queue, types
 └── store/ui-store.ts       # Zustand persistido (última categoría)
 ```
 
 ## Modelo de datos
 
-Tablas: `categories`, `transactions`, `fixed_expenses`, `budgets`, `goals`
-(fijas/ presupuestos/ metas listas para V2).
+Tablas: `users`, `sessions`, `categories`, `transactions`, `fixed_expenses`,
+`budgets` (meta por concepto y ciclo), `goals`, `savings_buckets`,
+`savings_entries` (movimientos: `aporte`/`sobrante`/`retiro`/`ajuste`),
+`cycle_closures` y `cycle_closure_items` (decisiones del cierre).
 
 `transactions` denormaliza los campos de fecha al insertar
-(`year`, `month`, `quarter`, `semester`, `weekIso`, `day`, `dayOfWeek`, `hour`)
-con 6 índices, para que las agregaciones del dashboard sean `GROUP BY` puros
-sobre índices sin funciones SQL por fila. Montos en **céntimos** (INTEGER).
+(`cycleKey`, `year`, `month`, `quarter`, `semester`, `weekIso`, `day`,
+`dayOfWeek`, `hour`) con 10 índices, para que las agregaciones del dashboard
+sean `GROUP BY` puros sobre índices sin funciones SQL por fila. Montos en
+**céntimos** (INTEGER). `clientId` único da idempotencia a la cola offline y
+`fixedExpenseId` vincula los pagos de gastos fijos.
+
+## Modelo de ciclo (25 → 24)
+
+El ciclo va del **25 de un mes al 24 del siguiente** (el 25 es el día de pago).
+`cycleKey` es `"YYYY-MM"` del mes en que inicia y se deriva del calendario
+local del cliente (`src/lib/cycle.ts`); el servidor nunca lo infiere de UTC.
+
+- **Inicio**: ciclo actual, días para el próximo pago, ingresos del ciclo y
+  "sin asignar" = ingresos − cobros fijos esperados − metas de conceptos −
+  aportes a ahorro del ciclo.
+- **Fijos** (`/fixed`): cada gasto fijo proyecta sus cobros con fecha esperada
+  dentro del ciclo; "marcar pagado" crea la transacción (idempotente por
+  `clientId`) y se puede deshacer.
+- **Personales** (`/concepts`): meta por concepto por ciclo (`budgets`),
+  disponible = meta + sobrante arrastrado (`carryCents`) − gastado. Los gastos
+  de conceptos excluyen transacciones de gastos fijos.
+- **Ahorros** (`/savings`): sub-bolsillos con porcentaje (20/50/30 por
+  defecto); cada aporte se reparte con `splitByPct` (residuo del redondeo a
+  los de mayor fracción).
+- **Cierre** (`/close`): por cada concepto con sobrante se decide `savings`
+  (repartir a bolsillos), `carry` (arrastrar al próximo ciclo) o `move`
+  (mover a otro concepto); guarda `cycle_closures` + `cycle_closure_items`
+  y los `savings_entries` tipo `sobrante`.
 
 ## Estrategia <1s para registrar un gasto
 
@@ -144,7 +179,10 @@ sobre índices sin funciones SQL por fila. Montos en **céntimos** (INTEGER).
 
 - **MVP** (hecho): captura <1s, dashboard KPIs + gráficos, historial con
   filtros, PWA instalable, modo offline con cola, CRUD categorías.
-- **V1**: ingresos con fecha/categoría completos, comparación de períodos,
-  heatmap diario, export JSON.
-- **V2**: presupuestos con alertas, gastos fijos recurrentes, metas de ahorro.
-- **Futuro**: insights automáticos, dark mode, autogeneración de gastos fijos.
+- **V1** (hecho): auth de una cuenta, ingresos con fecha/categoría, export
+  CSV, edición/borrado en historial, backups.
+- **V2** (hecho): modelo de ciclo 25→24 — metas por concepto, gastos fijos
+  con pago por ciclo, sub-bolsillos de ahorro con % y cierre de ciclo con
+  decisiones de sobrantes.
+- **Futuro**: comparación de períodos, heatmap diario, export JSON,
+  insights automáticos, dark mode, notificaciones.

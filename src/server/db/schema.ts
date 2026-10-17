@@ -34,6 +34,12 @@ export const transactions = sqliteTable(
     note: text("note"),
     /** Clave de idempotencia generada por el cliente (evita duplicados en reintentos/cola offline). */
     clientId: text("client_id"),
+    /** Ciclo "YYYY-MM" (25 → 24) al que pertenece la fecha. */
+    cycleKey: text("cycle_key").notNull().default(""),
+    /** Si nació de marcar un gasto fijo como pagado. */
+    fixedExpenseId: text("fixed_expense_id").references(() => fixedExpenses.id, {
+      onDelete: "set null",
+    }),
     date: text("date").notNull(),
     ts: integer("ts").notNull(),
     year: integer("year").notNull(),
@@ -54,6 +60,9 @@ export const transactions = sqliteTable(
     index("idx_tx_year_month").on(t.year, t.month),
     index("idx_tx_week").on(t.weekIso),
     index("idx_tx_created").on(t.createdAt),
+    index("idx_tx_cycle").on(t.cycleKey),
+    index("idx_tx_cycle_category").on(t.cycleKey, t.categoryId),
+    index("idx_tx_fixed").on(t.fixedExpenseId),
     uniqueIndex("idx_tx_client").on(t.clientId),
   ],
 );
@@ -99,16 +108,24 @@ export const fixedExpenses = sqliteTable("fixed_expenses", {
   createdAt: integer("created_at").notNull(),
 });
 
-export const budgets = sqliteTable("budgets", {
-  id: text("id").primaryKey(),
-  categoryId: text("category_id")
-    .notNull()
-    .references(() => categories.id, { onDelete: "cascade" }),
-  amountCents: integer("amount_cents").notNull(),
-  period: text("period", { enum: ["monthly"] }).notNull().default("monthly"),
-  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
-  createdAt: integer("created_at").notNull(),
-});
+export const budgets = sqliteTable(
+  "budgets",
+  {
+    id: text("id").primaryKey(),
+    categoryId: text("category_id")
+      .notNull()
+      .references(() => categories.id, { onDelete: "cascade" }),
+    /** Meta por ciclo "YYYY-MM" (25 → 24). */
+    cycleKey: text("cycle_key").notNull().default(""),
+    amountCents: integer("amount_cents").notNull(),
+    /** Sobrante arrastrado del ciclo anterior (o movido desde otro concepto). */
+    carryCents: integer("carry_cents").notNull().default(0),
+    period: text("period", { enum: ["monthly"] }).notNull().default("monthly"),
+    isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [uniqueIndex("idx_budgets_cat_cycle").on(t.categoryId, t.cycleKey)],
+);
 
 export const goals = sqliteTable("goals", {
   id: text("id").primaryKey(),
@@ -122,6 +139,83 @@ export const goals = sqliteTable("goals", {
   createdAt: integer("created_at").notNull(),
 });
 
+/** Sub-bolsillos del ahorro (Fondo de emergencia, Metas grandes, Viaje...). */
+export const savingsBuckets = sqliteTable("savings_buckets", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  /** Porcentaje del aporte del ciclo que va a este bolsillo (0-100). */
+  pct: integer("pct").notNull().default(0),
+  icon: text("icon").notNull().default("piggy-bank"),
+  color: text("color").notNull().default("#10b981"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  isActive: integer("is_active", { mode: "boolean" }).notNull().default(true),
+  createdAt: integer("created_at").notNull(),
+});
+
+export const savingsEntryKind = ["aporte", "sobrante", "retiro", "ajuste"] as const;
+export type SavingsEntryKind = (typeof savingsEntryKind)[number];
+
+/** Movimientos del ahorro; el signo lo determina el tipo. */
+export const savingsEntries = sqliteTable(
+  "savings_entries",
+  {
+    id: text("id").primaryKey(),
+    bucketId: text("bucket_id")
+      .notNull()
+      .references(() => savingsBuckets.id, { onDelete: "cascade" }),
+    kind: text("kind", { enum: savingsEntryKind }).notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    cycleKey: text("cycle_key").notNull().default(""),
+    note: text("note"),
+    date: text("date").notNull(),
+    ts: integer("ts").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [
+    index("idx_savings_bucket").on(t.bucketId),
+    index("idx_savings_cycle").on(t.cycleKey),
+    index("idx_savings_ts").on(t.ts),
+  ],
+);
+
+/** Cierres de ciclo: un registro por ciclo cerrado. */
+export const cycleClosures = sqliteTable("cycle_closures", {
+  id: text("id").primaryKey(),
+  cycleKey: text("cycle_key").notNull().unique(),
+  /** Total que pasó a ahorro en el cierre. */
+  savedCents: integer("saved_cents").notNull().default(0),
+  /** Total arrastrado o movido a otros conceptos. */
+  carriedCents: integer("carried_cents").notNull().default(0),
+  note: text("note"),
+  closedAt: integer("closed_at").notNull(),
+});
+
+export const closureDecisions = ["savings", "carry", "move"] as const;
+export type ClosureDecision = (typeof closureDecisions)[number];
+
+/** Decisión tomada por cada concepto con sobrante al cerrar el ciclo. */
+export const cycleClosureItems = sqliteTable(
+  "cycle_closure_items",
+  {
+    id: text("id").primaryKey(),
+    closureId: text("closure_id")
+      .notNull()
+      .references(() => cycleClosures.id, { onDelete: "cascade" }),
+    categoryId: text("category_id").references(() => categories.id, {
+      onDelete: "set null",
+    }),
+    /** Snapshot del nombre por si la categoría se elimina. */
+    categoryName: text("category_name").notNull().default(""),
+    leftoverCents: integer("leftover_cents").notNull(),
+    decision: text("decision", { enum: closureDecisions }).notNull(),
+    targetCategoryId: text("target_category_id").references(() => categories.id, {
+      onDelete: "set null",
+    }),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [index("idx_closure_items_closure").on(t.closureId)],
+);
+
 export type Category = typeof categories.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type User = typeof users.$inferSelect;
@@ -129,3 +223,7 @@ export type Session = typeof sessions.$inferSelect;
 export type FixedExpense = typeof fixedExpenses.$inferSelect;
 export type Budget = typeof budgets.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
+export type SavingsBucket = typeof savingsBuckets.$inferSelect;
+export type SavingsEntry = typeof savingsEntries.$inferSelect;
+export type CycleClosure = typeof cycleClosures.$inferSelect;
+export type CycleClosureItem = typeof cycleClosureItems.$inferSelect;

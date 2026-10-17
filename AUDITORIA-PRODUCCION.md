@@ -355,7 +355,9 @@ Diseño del service worker (public/sw.js): **network-first para navegación**, *
 
 **Desplegado (Fase 3):** Turso (`libsql://finanzas-jahairasolange25-cloud.aws-us-east-1.turso.io`) migrado y sembrado (18 categorías); Vercel project `gestion-finanzas`, deploy manual con `vercel --prod` (GitHub auto-deploy aún no conectado); variables `DATABASE_URL` + `TURSO_AUTH_TOKEN` en Production; verificado en producción: headers, robots, 401 sin sesión, setup/login/logout, captura, historial, borrado, export CSV, error de login uniforme.
 
-**Pendientes post-deploy:** conectar repo a Vercel (Settings → Git → Connect), backup mensual de Turso, monitoreo (Sentry/uptime), páginas de error, paginación del historial, sw.js cache API, idempotency keys.
+**Rediseño de modelo — Fase 4 (17 oct 2026):** nueva UX de ciclo 25→24: inicio con ciclo/días al pago/3 secciones, `/concepts` (metas por concepto), `/fixed` (pago por ciclo con deshacer), `/savings` (sub-bolsillos con %, aportar/retirar/historial) y `/close` (cierre con decisiones de sobrantes); `/budgets` retirado. Migración `0003_wild_sentinel.sql` aplicada en prod (backup previo en `backups/prod-2026-10-17T18-57-56.json`; `cycle_key` backfilled en 93 transacciones; fila de budgets migrada al ciclo 2026-09; bolsillos 20/50/30 sembrados). Deploy verificado en desktop y móvil (0 errores de consola); 146 tests.
+
+**Pendientes post-deploy:** conectar repo a Vercel (Settings → Git → Connect), backup mensual de Turso, monitoreo (Sentry/uptime), páginas de error, paginación del historial, sw.js cache API.
 
 **Deseables:**
 - [ ] Monitoreo de errores (Sentry), alertas de uptime, Vercel Analytics

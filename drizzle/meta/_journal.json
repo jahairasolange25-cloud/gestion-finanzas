@@ -22,6 +22,13 @@
       "when": 1785617648035,
       "tag": "0002_mean_hardball",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1792248419891,
+      "tag": "0003_wild_sentinel",
+      "breakpoints": true
     }
   ]
 }

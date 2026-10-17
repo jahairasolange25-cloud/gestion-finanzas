@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CloudOff, Home, LayoutDashboard, PiggyBank, Plus, Settings, Target, Wallet, Wallet2 } from "lucide-react";
+import { CalendarCheck2, CloudOff, Home, LayoutDashboard, PiggyBank, Plus, ReceiptText, Settings, ShoppingBag, Wallet } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { useUiStore } from "@/store/ui-store";
 
@@ -10,9 +10,10 @@ const NAV = [
   { href: "/", label: "Inicio", icon: Home, exact: true },
   { href: "/history", label: "Historial", icon: Wallet },
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/budgets", label: "Presupuestos", icon: Wallet2 },
-  { href: "/fixed", label: "Gastos fijos", icon: PiggyBank },
-  { href: "/goals", label: "Metas", icon: Target },
+  { href: "/fixed", label: "Fijos", icon: ReceiptText },
+  { href: "/concepts", label: "Conceptos", icon: ShoppingBag },
+  { href: "/savings", label: "Ahorros", icon: PiggyBank },
+  { href: "/close", label: "Cierre", icon: CalendarCheck2 },
   { href: "/settings", label: "Ajustes", icon: Settings },
 ];
 

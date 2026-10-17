@@ -7,6 +7,8 @@ import { exportRouter } from "./routers/export";
 import { budgetsRouter } from "./routers/budgets";
 import { fixedExpensesRouter } from "./routers/fixed-expenses";
 import { goalsRouter } from "./routers/goals";
+import { savingsRouter } from "./routers/savings";
+import { cyclesRouter } from "./routers/cycles";
 
 export const appRouter = router({
   auth: authRouter,
@@ -17,6 +19,8 @@ export const appRouter = router({
   budgets: budgetsRouter,
   fixedExpenses: fixedExpensesRouter,
   goals: goalsRouter,
+  savings: savingsRouter,
+  cycles: cyclesRouter,
 });
 
 export type AppRouter = typeof appRouter;
