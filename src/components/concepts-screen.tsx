@@ -192,7 +192,6 @@ function ConceptRow({
   cycleKey: string;
   onChanged: () => void;
 }) {
-  const utils = trpc.useUtils();
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");

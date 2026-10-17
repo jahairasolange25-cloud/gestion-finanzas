@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import path from "node:path";
 import { createClient } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
@@ -11,6 +12,10 @@ if (url.startsWith("libsql://") && !process.env.TURSO_AUTH_TOKEN) {
   throw new Error(
     "DATABASE_URL remota (libsql://) requiere TURSO_AUTH_TOKEN",
   );
+}
+
+if (url.startsWith("file:")) {
+  fs.mkdirSync(path.dirname(url.slice("file:".length)), { recursive: true });
 }
 
 const client = createClient({

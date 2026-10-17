@@ -14,7 +14,7 @@ import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Modal } from "./ui/modal";
 import { CategoryIcon } from "./category-icon";
-import { formatMoney, formatNumber, parseMoneyToCents } from "@/lib/money";
+import { formatMoney, parseMoneyToCents } from "@/lib/money";
 import { formatDayMonth, todayStr } from "@/lib/date-fields";
 import { splitByPct } from "@/lib/cycle";
 import { cn } from "@/lib/cn";
@@ -61,7 +61,6 @@ export function SavingsScreen() {
     void utils.cycles.overview.invalidate();
   };
 
-  const setActive = trpc.savings.setBucketActive.useMutation();
   const removeBucket = trpc.savings.removeBucket.useMutation();
 
   return (

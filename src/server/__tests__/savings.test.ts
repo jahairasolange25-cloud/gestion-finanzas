@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { savingsBuckets } from "../db/schema";
 import { savingsRouter } from "../routers/savings";
 import { createTestDb, createTestUser, mintSession, makeCtx } from "./helpers";
 import type { Db } from "../db";

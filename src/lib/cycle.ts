@@ -40,7 +40,7 @@ const monthShort = (m: number) => MONTH_NAMES[m - 1].slice(0, 3).toLowerCase();
 
 /** "25 sep – 24 oct" para una clave de ciclo. */
 export function cycleLabel(key: string): string {
-  const [y, m] = key.split("-").map(Number);
+  const [, m] = key.split("-").map(Number);
   const nm = m === 12 ? 1 : m + 1;
   return `25 ${monthShort(m)} – 24 ${monthShort(nm)}`;
 }
